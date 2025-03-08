@@ -73,13 +73,81 @@ namespace Desktop_Defense
                 }
                 return;
             }
-
+            DragFalseWindow(PointToClient(Cursor.Position));
             foreach (FalseWindow window in FalseWindows)
             {
                 window.Draw(e);
             }
         }
-        // P/Invoke declarations
+
+        public void DragFalseWindow(Point mousePos)
+        {
+            foreach (FalseWindow window in FalseWindows)
+            {
+                if (window.Dragging)
+                {
+                    window.Bounds = new Rectangle(mousePos.X - window.Difference.X, mousePos.Y - window.Difference.Y, window.Bounds.Width, window.Bounds.Height);
+                    if (window.Bounds.X < 0)
+                    {
+                        window.Bounds = new Rectangle(0, window.Bounds.Y, window.Bounds.Width, window.Bounds.Height);
+                    }
+                    if (window.Bounds.Y < 0)
+                    {
+                        window.Bounds = new Rectangle(window.Bounds.X, 0, window.Bounds.Width, window.Bounds.Height);
+                    }
+                    if (window.Bounds.X + window.Bounds.Width > this.Width)
+                    {
+                        window.Bounds = new Rectangle(this.Width - window.Bounds.Width, window.Bounds.Y, window.Bounds.Width, window.Bounds.Height);
+                    }
+                    if (window.Bounds.Y + window.Bounds.Height + FalseWindow.TopFrameThiccness > this.Height)
+                    {
+                        window.Bounds = new Rectangle(window.Bounds.X, this.Height - window.Bounds.Height - FalseWindow.TopFrameThiccness, window.Bounds.Width, window.Bounds.Height);
+                    }
+                    return;
+                }
+            }
+        }
+
+        protected override void OnMouseDown(MouseEventArgs e)
+        {
+            base.OnMouseDown(e);
+            for (int i = FalseWindows.Length - 1; i >= 0; i--)
+            {
+                FalseWindow window = FalseWindows[i];
+                if ((new Rectangle(window.Bounds.X, window.Bounds.Y, window.Bounds.Width, 30)).Contains(e.Location))
+                {
+                    // Set the offset for dragging
+                    window.Difference = new Point(e.Location.X - window.Bounds.X, e.Location.Y - window.Bounds.Y);
+                    window.Dragging = true;
+                    // Move to the top
+                    FalseWindow temp = window;
+                    for (int j = 0; j < FalseWindows.Length; j++)
+                    {
+                        if (FalseWindows[j] == window)
+                        {
+                            for (int k = j; k < FalseWindows.Length - 1; k++)
+                            {
+                                FalseWindows[k] = FalseWindows[k + 1];
+                                FalseWindows[k].Top = false;
+                            }
+                            FalseWindows[FalseWindows.Length - 1] = temp;
+                            temp.Top = true;
+                            break;
+                        }
+                    }
+                    return;
+                }
+            }
+        }
+
+        protected override void OnMouseUp(MouseEventArgs e)
+        {
+            base.OnMouseUp(e);
+            foreach (FalseWindow window in FalseWindows)
+            {
+                window.Dragging = false;
+            }
+        }
 
         // Delegate for EnumWindows callback.
         private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
