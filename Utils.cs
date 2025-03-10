@@ -18,8 +18,10 @@ namespace Desktop_Defense
             static int TopFrameThiccness = 30;
             static Brush brush = new SolidBrush(Color.White);
             static Pen pen = new Pen(Color.FromArgb(0x2a,0x2a,0x2a), 1f);
+            public event Action<PaintEventArgs> DrawEvent;
             public FalseWindow(string title, Rectangle bounds, bool visible, Point position)
             {
+                DrawEvent += Draw;
                 Title = title;
                 Bounds = bounds;
                 Visible = visible;

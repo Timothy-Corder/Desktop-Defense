@@ -64,7 +64,7 @@ namespace Desktop_Defense
             if (flashing)
             {
                 e.Graphics.FillRectangle(new SolidBrush(Color.FromArgb(Math.Min(flashAlpha,255), Color.White)), 0, 0, this.Width, this.Height);
-                //e.Graphics.DrawImage(Resources.Title, this.Width / 2 - Resources.Title.Width, this.Height / 2 - 300, 800, 600);
+                e.Graphics.DrawImage(Resources.Title, this.Width / 2 - Resources.Title.Width / 2, this.Height / 2 - Resources.Title.Height / 2, Resources.Title.Width, Resources.Title.Height);
                 flashAlpha += 10;
                 if (flashAlpha >= 500)
                 {
