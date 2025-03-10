@@ -15,9 +15,12 @@ namespace Desktop_Defense
             public Point Position;
             public WeakReference<Form1> Parent;
             public int frame;
-            static int TopFrameThiccness = 30;
+            public static int TopFrameThiccness = 30;
             static Brush brush = new SolidBrush(Color.White);
             static Pen pen = new Pen(Color.FromArgb(0x2a,0x2a,0x2a), 1f);
+            public Point Difference;
+            public bool Dragging;
+            public bool Top = false;
             public event Action<PaintEventArgs> DrawEvent;
             public FalseWindow(string title, Rectangle bounds, bool visible, Point position)
             {
@@ -56,22 +59,30 @@ namespace Desktop_Defense
                     Parent.TryGetTarget(out form);
                     if (form != null)
                     {
-                        if (this.Title == "Desktop Defense Portal")
+                        Rectangle topBar = new Rectangle(Bounds.X, Bounds.Y, Bounds.Width, TopFrameThiccness);
+                        Rectangle bodyRect = new Rectangle(Bounds.X, Bounds.Y + TopFrameThiccness, Bounds.Width, Bounds.Height);
+                        switch (this.Title)
                         {
-                            e.Graphics.InterpolationMode = InterpolationMode.NearestNeighbor;
-                            Rectangle topBar = new Rectangle(Bounds.X, Bounds.Y, Bounds.Width, TopFrameThiccness);
-                            Rectangle portRect = new Rectangle(Bounds.X, Bounds.Y + TopFrameThiccness, Bounds.Width, Bounds.Height);
-                            e.Graphics.DrawImage(form.Portal, portRect, 0, form.PortalSize * frame, form.PortalSize, form.PortalSize, GraphicsUnit.Pixel);
-                            e.Graphics.DrawRectangle(pen, portRect);
-                            e.Graphics.FillRectangle(brush, topBar);
-                            e.Graphics.DrawRectangle(pen, topBar);
-                            RectangleF textBar = new RectangleF(topBar.X, topBar.Y, topBar.Width, topBar.Height);
-                            textBar.Offset(topBar.Height / 3, topBar.Height / 3);
-                            e.Graphics.DrawString(Title, SystemFonts.DefaultFont, Brushes.Black, textBar);
-                            if (form.FrameNum % (form.FPS / form.PortalFPS) == 0)
-                            frame++;
-                            frame = frame % form.PortalFrames;
+                            case "Desktop Defense Wall":
+                                e.Graphics.FillRectangle(Brushes.Gray, bodyRect);
+                                break;
+                            case "Desktop Defense Tower":
+                                e.Graphics.FillRectangle(Brushes.DarkGray, bodyRect);
+                                break;
+                            case "Desktop Defense Portal":
+                                e.Graphics.InterpolationMode = InterpolationMode.NearestNeighbor;
+                                e.Graphics.DrawImage(form.Portal, bodyRect, -0.5f, form.PortalSize * frame - 0.5f, form.PortalSize, form.PortalSize, GraphicsUnit.Pixel);
+                                if (form.FrameNum % (form.FPS / form.PortalFPS) == 0)
+                                    frame++;
+                                frame = frame % form.PortalFrames;
+                                break;
                         }
+                        e.Graphics.DrawRectangle((this.Top) ? pen : Pens.DarkGray, bodyRect);
+                        e.Graphics.FillRectangle(Brushes.White, topBar);
+                        e.Graphics.DrawRectangle((this.Top) ? pen : Pens.DarkGray, topBar);
+                        RectangleF textBar = new RectangleF(topBar.X, topBar.Y, topBar.Width, topBar.Height);
+                        textBar.Offset(topBar.Height / 3, topBar.Height / 3);
+                        e.Graphics.DrawString(Title, SystemFonts.DefaultFont, (this.Top)? Brushes.Black : Brushes.Gray, textBar);
                     }
                 }
             }
