@@ -16,7 +16,7 @@ namespace Desktop_Defense
             // see https://aka.ms/applicationconfiguration.
             ApplicationConfiguration.Initialize();
             //MakeWalls(3).Wait();
-            Form1 app = new Form1(1, 0, 0);
+            Form1 app = new Form1(1, 5 , 0);
 
             app.Show();
 

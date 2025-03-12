@@ -1,6 +1,7 @@
 using Desktop_Defense.Utils;
 using System.Runtime.InteropServices;
 using System.Text;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using Timer = System.Windows.Forms.Timer;
 
 namespace Desktop_Defense
@@ -15,10 +16,11 @@ namespace Desktop_Defense
         public Image BackgroundImage;
         private Image Title;
         private bool flashing = true;
-        private int flashAlpha = 0;
+        private int flashAlpha = -100;
         internal int FrameNum = 0;
         internal int FPS = 60;
         internal int PortalFPS = 10;
+        internal ImgButton CloseButton;
         public Form1(int portalCount, int wallCount, int towerCount)
         {
             this.Text = "Desktop Defense";
@@ -31,6 +33,8 @@ namespace Desktop_Defense
             this.PortalFrames = Portal.Height / PortalSize;
             this.Title = Resources.Title;
             this.FalseWindows = new FalseWindow[portalCount + wallCount + towerCount];
+            Bitmap clsBtn = Resources.CloseButton;
+            this.CloseButton = new ImgButton(new Rectangle(Screen.FromControl(this).WorkingArea.Width - (clsBtn.Width * 4), 0, clsBtn.Width * 4, (clsBtn.Height * 4) / 3), clsBtn, this.Close, new WeakReference<Form1>(this));
 
             for (int i = 0; i < portalCount; i++)
             {
@@ -39,7 +43,7 @@ namespace Desktop_Defense
             }
             for (int i = portalCount; i < portalCount + wallCount; i++)
             {
-                FalseWindows[i] = new FalseWindow("Desktop Defense Wall", new Point(0, 0));
+                FalseWindows[i] = new FalseWindow("Desktop Defense Wall", new Rectangle(200 + (i * 10), 200 + (i * 10), 150, 150), true, true);
                 FalseWindows[i].Parent = new WeakReference<Form1>(this);
             }
             for (int i = portalCount + wallCount; i < portalCount + wallCount + towerCount; i++)
@@ -63,9 +67,10 @@ namespace Desktop_Defense
             
             if (flashing)
             {
-                e.Graphics.FillRectangle(new SolidBrush(Color.FromArgb(Math.Min(flashAlpha,255), Color.White)), 0, 0, this.Width, this.Height);
-                e.Graphics.DrawImage(Resources.Title, this.Width / 2 - Resources.Title.Width / 2, this.Height / 2 - Resources.Title.Height / 2, Resources.Title.Width, Resources.Title.Height);
-                flashAlpha += 10;
+                
+                e.Graphics.FillRectangle(new SolidBrush(Color.FromArgb(Math.Clamp(flashAlpha,0,255), Color.White)), 0, 0, this.Width, this.Height);
+                e.Graphics.DrawImage(Resources.Title, this.Width / 2 - (Resources.Title.Width * 10) / 2, this.Height / 2 - (Resources.Title.Height * 10) / 2, (Resources.Title.Width * 10), (Resources.Title.Height * 10));
+                flashAlpha += 5;
                 if (flashAlpha >= 500)
                 {
                     flashAlpha = 0;
@@ -74,10 +79,26 @@ namespace Desktop_Defense
                 return;
             }
             DragFalseWindow(PointToClient(Cursor.Position));
+            ScaleFalseWindow(PointToClient(Cursor.Position));
             foreach (FalseWindow window in FalseWindows)
             {
                 window.Draw(e);
             }
+            for (int i = FalseWindows.Length - 1; i >= 0; i--)
+            {
+                FalseWindow window = FalseWindows[i];
+                if (window.Resizeable && new Rectangle(window.Bounds.X + window.Bounds.Width - 5, window.Bounds.Y + FalseWindow.TopFrameThiccness + window.Bounds.Height - 5, 10, 10).Contains(MousePosition))
+                {
+                    Cursor = Cursors.SizeNWSE;
+                    break;
+                }
+                else
+                {
+                    Cursor = Cursors.Default;
+                }
+            }
+            CloseButton.Hover(MousePosition);
+            CloseButton.Draw(e);
         }
 
         public void DragFalseWindow(Point mousePos)
@@ -107,18 +128,42 @@ namespace Desktop_Defense
                 }
             }
         }
-
+        public void ScaleFalseWindow(Point mousePos)
+        {
+            foreach (FalseWindow window in FalseWindows)
+            {
+                if (window.Resizeable && window.Resizing)
+                {
+                    window.Bounds = new Rectangle(window.Bounds.X, window.Bounds.Y, mousePos.X - window.Bounds.X, mousePos.Y - window.Bounds.Y - FalseWindow.TopFrameThiccness);
+                    window.Bounds.Width = Math.Max(window.Bounds.Width, 150);
+                    window.Bounds.Height = Math.Max(window.Bounds.Height, 5);
+                    return;
+                }
+            }
+        }
         protected override void OnMouseDown(MouseEventArgs e)
         {
             base.OnMouseDown(e);
+            CloseButton.ClickDown(e.Location);
             for (int i = FalseWindows.Length - 1; i >= 0; i--)
             {
                 FalseWindow window = FalseWindows[i];
+
+                // Check if the mouse is on the resize handle
+                if (window.Resizeable && new Rectangle(window.Bounds.X + window.Bounds.Width - 5, window.Bounds.Y + FalseWindow.TopFrameThiccness + window.Bounds.Height - 5, 10, 10).Contains(MousePosition))
+                {
+                    window.Resizing = true;
+                }
+
+                // Check if the mouse is in the title bar
                 if ((new Rectangle(window.Bounds.X, window.Bounds.Y, window.Bounds.Width, 30)).Contains(e.Location))
                 {
                     // Set the offset for dragging
                     window.Difference = new Point(e.Location.X - window.Bounds.X, e.Location.Y - window.Bounds.Y);
                     window.Dragging = true;
+                }
+                if (window.Dragging || window.Resizing)
+                {
                     // Move to the top
                     FalseWindow temp = window;
                     for (int j = 0; j < FalseWindows.Length; j++)
@@ -137,15 +182,21 @@ namespace Desktop_Defense
                     }
                     return;
                 }
+                else
+                {
+                    window.Top = false;
+                }
             }
         }
 
         protected override void OnMouseUp(MouseEventArgs e)
         {
             base.OnMouseUp(e);
+            CloseButton.ClickUp(e.Location);
             foreach (FalseWindow window in FalseWindows)
             {
                 window.Dragging = false;
+                window.Resizing = false;
             }
         }
 
