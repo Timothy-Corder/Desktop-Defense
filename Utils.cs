@@ -4,12 +4,40 @@ using System.Configuration;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using TimUtils;
 
 namespace Desktop_Defense
 {
     namespace Utils
     {
+        public class Screenshotter
+        {
+            public WeakReference<Form1> Parent;
+            public Screenshotter(Form1 p)
+            {
+                Parent = new WeakReference<Form1>(p);
+            }
+            public Bitmap? TakeScreenshot(Screen screen)
+            {
+                if (Parent != null)
+                {
+                    Form1 form;
+                    Parent.TryGetTarget(out form);
+                    if (form != null)
+                    {
+                        form.Hide();
+                        Bitmap captureBitmap = new Bitmap(screen.Bounds.Width, screen.Bounds.Height, PixelFormat.Format32bppArgb);
+                        Rectangle captureRectangle = screen.Bounds;
+                        Graphics captureGraphics = Graphics.FromImage(captureBitmap);
+                        captureGraphics.CopyFromScreen(captureRectangle.Left, captureRectangle.Top, 0, 0, captureRectangle.Size);
+                        form.Show();
+                        return captureBitmap;
+                    }
+                }
+                return null;
+            }
+        }
         public struct IntVector
         {
             private Vector2 _value;
@@ -54,6 +82,7 @@ namespace Desktop_Defense
                 Parent.TryGetTarget(out form);
                 if (form != null)
                 {
+                    e.Graphics.DrawRectangle(Pens.Green,Bounds);
                     if (Visible)
                     {
                         e.Graphics.DrawImage(Sprite, Bounds, 0, ((Sprite.Height - 0.5f)/3) * State, (Sprite.Width - 0.5f), (Sprite.Height - 0.5f) / 3, GraphicsUnit.Pixel);
@@ -162,9 +191,9 @@ namespace Desktop_Defense
                                 frame = frame % form.PortalFrames;
                                 break;
                         }
-                        e.Graphics.DrawRectangle((this.Top) ? pen : Pens.DarkGray, bodyRect);
+                        e.Graphics.DrawRectangle((this.Top) ? pen : Pens.Gray, bodyRect);
                         e.Graphics.FillRectangle(Brushes.White, topBar);
-                        e.Graphics.DrawRectangle((this.Top) ? pen : Pens.DarkGray, topBar);
+                        e.Graphics.DrawRectangle((this.Top) ? pen : Pens.Gray, topBar);
                         RectangleF textBar = new RectangleF(topBar.X, topBar.Y, topBar.Width, topBar.Height);
                         textBar.Offset(topBar.Height / 3, topBar.Height / 3);
                         e.Graphics.DrawString(Title, SystemFonts.DefaultFont, (this.Top)? Brushes.Black : Brushes.Gray, textBar);

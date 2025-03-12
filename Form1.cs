@@ -1,4 +1,5 @@
 using Desktop_Defense.Utils;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
@@ -51,18 +52,35 @@ namespace Desktop_Defense
                 FalseWindows[i] = new FalseWindow("Desktop Defense Tower", new Point(0, 0));
                 FalseWindows[i].Parent = new WeakReference<Form1>(this);
             }
+            this.Move += newScreenshot;
+
             // Refresh the drawing periodically
             refreshTimer = new Timer();
             refreshTimer.Interval = 1000/FPS; // 60fps
             refreshTimer.Tick += (s, e) => this.Invalidate();
             refreshTimer.Start();
         }
-
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+            SetProcessDPIAware();
+        }
+        internal void newScreenshot(object? o, EventArgs e)
+        {
+            Screenshotter Screenshotter = new Screenshotter(this);
+            Image newScreenie = Screenshotter.TakeScreenshot(Screen.FromControl(this));
+            if (newScreenie != null)
+            {
+                BackgroundImage = newScreenie;
+            }
+            Debug.WriteLine($"{Screen.FromControl(this).WorkingArea.Width}, {Screen.FromControl(this).WorkingArea.Height}");
+        }
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
             e.Graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
             e.Graphics.DrawImage(BackgroundImage, 0, 0, this.Width, this.Height);
+            e.Graphics.PageUnit = GraphicsUnit.Pixel;
             FrameNum = (FrameNum+1) % 60;
             
             if (flashing)
@@ -199,6 +217,9 @@ namespace Desktop_Defense
                 window.Resizing = false;
             }
         }
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool SetProcessDPIAware();
 
         // Delegate for EnumWindows callback.
         private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
