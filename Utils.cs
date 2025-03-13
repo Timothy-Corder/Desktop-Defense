@@ -11,6 +11,26 @@ namespace Desktop_Defense
 {
     namespace Utils
     {
+        public class Grass
+        {
+            public Bitmap[][] sprites;
+            const int size = 16;
+            public Grass()
+            {
+                sprites = new Bitmap[3][];
+                for (int i = 0; i < 3; i++)
+                {
+                    sprites[i] = new Bitmap[3];
+                    for (int j = 0; j < 3; j++)
+                    {
+                        Bitmap bmp = new Bitmap(size, size);
+                        Graphics g = Graphics.FromImage(bmp);
+                        g.DrawImage(Resources.Grass, new Rectangle(0, 0, size, size), new Rectangle(j * size, i * size, size, size), GraphicsUnit.Pixel);
+                        sprites[i][j] = bmp;
+                    }
+                }
+            }
+        }
         public class Screenshotter
         {
             public WeakReference<Form1> Parent;
@@ -82,7 +102,6 @@ namespace Desktop_Defense
                 Parent.TryGetTarget(out form);
                 if (form != null)
                 {
-                    e.Graphics.DrawRectangle(Pens.Green,Bounds);
                     if (Visible)
                     {
                         e.Graphics.DrawImage(Sprite, Bounds, 0, ((Sprite.Height - 0.5f)/3) * State, (Sprite.Width - 0.5f), (Sprite.Height - 0.5f) / 3, GraphicsUnit.Pixel);
@@ -177,11 +196,12 @@ namespace Desktop_Defense
                         Rectangle bodyRect = new Rectangle(Bounds.X, Bounds.Y + TopFrameThiccness, Bounds.Width, Bounds.Height);
                         switch (this.Title)
                         {
-                            case "Desktop Defense Wall":
-                                e.Graphics.FillRectangle(Brushes.Gray, bodyRect);
+                            case "Desktop Defense Ground":
+                                int size = form.Grass.sprites[0][0].Width;
+                                e.Graphics.DrawImage(form.Grass.sprites[0][0],new Rectangle(Bounds.X, Bounds.Y + TopFrameThiccness, size * 3, size * 3));
                                 break;
                             case "Desktop Defense Tower":
-                                e.Graphics.FillRectangle(Brushes.DarkGray, bodyRect);
+                                e.Graphics.FillRectangle(Brushes.Gray, bodyRect);
                                 break;
                             case "Desktop Defense Portal":
                                 e.Graphics.InterpolationMode = InterpolationMode.NearestNeighbor;

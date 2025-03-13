@@ -22,6 +22,7 @@ namespace Desktop_Defense
         internal int FPS = 60;
         internal int PortalFPS = 10;
         internal ImgButton CloseButton;
+        internal Grass Grass = new Grass();
         public Form1(int portalCount, int wallCount, int towerCount)
         {
             this.Text = "Desktop Defense";
@@ -44,7 +45,7 @@ namespace Desktop_Defense
             }
             for (int i = portalCount; i < portalCount + wallCount; i++)
             {
-                FalseWindows[i] = new FalseWindow("Desktop Defense Wall", new Rectangle(200 + (i * 10), 200 + (i * 10), 150, 150), true, true);
+                FalseWindows[i] = new FalseWindow("Desktop Defense Ground", new Rectangle(200 + (i * 10), 200 + (i * 10), 150, 150), true, true);
                 FalseWindows[i].Parent = new WeakReference<Form1>(this);
             }
             for (int i = portalCount + wallCount; i < portalCount + wallCount + towerCount; i++)
@@ -105,7 +106,7 @@ namespace Desktop_Defense
             for (int i = FalseWindows.Length - 1; i >= 0; i--)
             {
                 FalseWindow window = FalseWindows[i];
-                if (window.Resizeable && new Rectangle(window.Bounds.X + window.Bounds.Width - 5, window.Bounds.Y + FalseWindow.TopFrameThiccness + window.Bounds.Height - 5, 10, 10).Contains(MousePosition))
+                if (window.Resizeable && new Rectangle(window.Bounds.X + window.Bounds.Width - 5, window.Bounds.Y + FalseWindow.TopFrameThiccness + window.Bounds.Height - 5, 10, 10).Contains(PointToClient(MousePosition)))
                 {
                     Cursor = Cursors.SizeNWSE;
                     break;
@@ -115,7 +116,7 @@ namespace Desktop_Defense
                     Cursor = Cursors.Default;
                 }
             }
-            CloseButton.Hover(MousePosition);
+            CloseButton.Hover(PointToClient(MousePosition));
             CloseButton.Draw(e);
         }
 
@@ -168,7 +169,7 @@ namespace Desktop_Defense
                 FalseWindow window = FalseWindows[i];
 
                 // Check if the mouse is on the resize handle
-                if (window.Resizeable && new Rectangle(window.Bounds.X + window.Bounds.Width - 5, window.Bounds.Y + FalseWindow.TopFrameThiccness + window.Bounds.Height - 5, 10, 10).Contains(MousePosition))
+                if (window.Resizeable && new Rectangle(window.Bounds.X + window.Bounds.Width - 5, window.Bounds.Y + FalseWindow.TopFrameThiccness + window.Bounds.Height - 5, 10, 10).Contains(PointToClient(MousePosition)))
                 {
                     window.Resizing = true;
                 }
