@@ -15,6 +15,7 @@ namespace Desktop_Defense
         {
             public Bitmap[][] sprites;
             const int size = 16;
+            public const int ScaleFactor = 4;
             public Grass()
             {
                 sprites = new Bitmap[3][];
@@ -25,7 +26,7 @@ namespace Desktop_Defense
                     {
                         Bitmap bmp = new Bitmap(size, size);
                         Graphics g = Graphics.FromImage(bmp);
-                        g.DrawImage(Resources.Grass, new Rectangle(0, 0, size, size), new Rectangle(j * size, i * size, size, size), GraphicsUnit.Pixel);
+                        g.DrawImage(Resources.Grass, new RectangleF(0, 0, size, size), new Rectangle(j * size, i * size, size, size), GraphicsUnit.Pixel);
                         sprites[i][j] = bmp;
                     }
                 }
@@ -104,7 +105,7 @@ namespace Desktop_Defense
                 {
                     if (Visible)
                     {
-                        e.Graphics.DrawImage(Sprite, Bounds, 0, ((Sprite.Height - 0.5f)/3) * State, (Sprite.Width - 0.5f), (Sprite.Height - 0.5f) / 3, GraphicsUnit.Pixel);
+                        e.Graphics.DrawImage(Sprite, Bounds, 0, (Sprite.Height/3) * State, Sprite.Width, Sprite.Height / 3, GraphicsUnit.Pixel);
                     }
                 }
             }
@@ -197,15 +198,126 @@ namespace Desktop_Defense
                         switch (this.Title)
                         {
                             case "Desktop Defense Ground":
-                                int size = form.Grass.sprites[0][0].Width;
-                                e.Graphics.DrawImage(form.Grass.sprites[0][0],new Rectangle(Bounds.X, Bounds.Y + TopFrameThiccness, size * 3, size * 3));
+                                int spriteSize = form.Grass.sprites[0][0].Width;
+                                int size = spriteSize * Grass.ScaleFactor;
+                                e.Graphics.InterpolationMode = InterpolationMode.NearestNeighbor;
+
+                                // Calculate available space
+                                int availableWidth = Bounds.Width - size * 2;
+                                int availableHeight = Bounds.Height - size * 2;
+
+                                // Calculate how many complete sprites fit in each dimension
+                                int completeSpritesX = availableWidth / size;
+                                int completeSpritesY = availableHeight / size;
+
+                                // Calculate remaining space for the last partial sprite
+                                int remainingX = availableWidth - (completeSpritesX * size);
+                                int remainingY = availableHeight - (completeSpritesY * size);
+
+                                // Draw the middle of the ground
+                                e.Graphics.DrawImage(form.Grass.sprites[1][1], new Rectangle(
+                                    Bounds.X + size,
+                                    Bounds.Y + TopFrameThiccness + size,
+                                    Bounds.Width - size * 2,
+                                    Bounds.Height - size * 2));
+
+                                // Draw the sides of the ground
+                                // Top side (excluding corners)
+                                for (int x = 0; x < completeSpritesX; x++)
+                                {
+                                    bool isLastSprite = (x == completeSpritesX - 1) && (remainingX > 0) && (remainingX <= size / 4);
+                                    int drawWidth = isLastSprite ? size + remainingX : size;
+
+                                    e.Graphics.DrawImage(form.Grass.sprites[0][1],
+                                        new Rectangle(Bounds.X + size + (x * size), Bounds.Y + TopFrameThiccness, drawWidth, size),
+                                        new Rectangle(0, 0, spriteSize, spriteSize),
+                                        GraphicsUnit.Pixel);
+                                }
+
+                                // Handle remaining gap if it's more than 1/4 of a sprite (but not a full sprite)
+                                if (remainingX > size / 4 && remainingX < size)
+                                {
+                                    e.Graphics.DrawImage(form.Grass.sprites[0][1],
+                                        new Rectangle(Bounds.X + size + (completeSpritesX * size), Bounds.Y + TopFrameThiccness, remainingX, size),
+                                        new Rectangle(0, 0, (remainingX * spriteSize) / size, spriteSize),
+                                        GraphicsUnit.Pixel);
+                                }
+
+                                // Bottom side (excluding corners)
+                                for (int x = 0; x < completeSpritesX; x++)
+                                {
+                                    bool isLastSprite = (x == completeSpritesX - 1) && (remainingX > 0) && (remainingX <= size / 4);
+                                    int drawWidth = isLastSprite ? size + remainingX : size;
+
+                                    e.Graphics.DrawImage(form.Grass.sprites[2][1],
+                                        new Rectangle(Bounds.X + size + (x * size), Bounds.Y + TopFrameThiccness + Bounds.Height - size, drawWidth, size),
+                                        new Rectangle(0, 0, spriteSize, spriteSize),
+                                        GraphicsUnit.Pixel);
+                                }
+
+                                // Handle remaining gap if it's more than 1/4 of a sprite
+                                if (remainingX > size / 4 && remainingX < size)
+                                {
+                                    e.Graphics.DrawImage(form.Grass.sprites[2][1],
+                                        new Rectangle(Bounds.X + size + (completeSpritesX * size), Bounds.Y + TopFrameThiccness + Bounds.Height - size, remainingX, size),
+                                        new Rectangle(0, 0, (remainingX * spriteSize) / size, spriteSize),
+                                        GraphicsUnit.Pixel);
+                                }
+
+                                // Left side (excluding corners)
+                                for (int y = 0; y < completeSpritesY; y++)
+                                {
+                                    bool isLastSprite = (y == completeSpritesY - 1) && (remainingY > 0) && (remainingY <= size / 4);
+                                    int drawHeight = isLastSprite ? size + remainingY : size;
+
+                                    e.Graphics.DrawImage(form.Grass.sprites[1][0],
+                                        new Rectangle(Bounds.X, Bounds.Y + TopFrameThiccness + size + (y * size), size, drawHeight),
+                                        new Rectangle(0, 0, spriteSize, spriteSize),
+                                        GraphicsUnit.Pixel);
+                                }
+
+                                // Handle remaining gap if it's more than 1/4 of a sprite
+                                if (remainingY > size / 4 && remainingY < size)
+                                {
+                                    e.Graphics.DrawImage(form.Grass.sprites[1][0],
+                                        new Rectangle(Bounds.X, Bounds.Y + TopFrameThiccness + size + (completeSpritesY * size), size, remainingY),
+                                        new Rectangle(0, 0, spriteSize, (remainingY * spriteSize) / size),
+                                        GraphicsUnit.Pixel);
+                                }
+
+                                // Right side (excluding corners)
+                                for (int y = 0; y < completeSpritesY; y++)
+                                {
+                                    bool isLastSprite = (y == completeSpritesY - 1) && (remainingY > 0) && (remainingY <= size / 4);
+                                    int drawHeight = isLastSprite ? size + remainingY : size;
+
+                                    e.Graphics.DrawImage(form.Grass.sprites[1][2],
+                                        new Rectangle(Bounds.X + Bounds.Width - size, Bounds.Y + TopFrameThiccness + size + (y * size), size, drawHeight),
+                                        new Rectangle(0, 0, spriteSize, spriteSize),
+                                        GraphicsUnit.Pixel);
+                                }
+
+                                // Handle remaining gap if it's more than 1/4 of a sprite
+                                if (remainingY > size / 4 && remainingY < size)
+                                {
+                                    e.Graphics.DrawImage(form.Grass.sprites[1][2],
+                                        new Rectangle(Bounds.X + Bounds.Width - size, Bounds.Y + TopFrameThiccness + size + (completeSpritesY * size), size, remainingY),
+                                        new Rectangle(0, 0, spriteSize, (remainingY * spriteSize) / size),
+                                        GraphicsUnit.Pixel);
+                                }
+
+                                // Draw the four corners of the ground
+                                e.Graphics.DrawImage(form.Grass.sprites[0][0], new Rectangle(Bounds.X, Bounds.Y + TopFrameThiccness, size, size));
+                                e.Graphics.DrawImage(form.Grass.sprites[0][2], new Rectangle(Bounds.X + Bounds.Width - size, Bounds.Y + TopFrameThiccness, size, size));
+                                e.Graphics.DrawImage(form.Grass.sprites[2][0], new Rectangle(Bounds.X, Bounds.Y + Bounds.Height + TopFrameThiccness - size, size, size));
+                                e.Graphics.DrawImage(form.Grass.sprites[2][2], new Rectangle(Bounds.X + Bounds.Width - size, Bounds.Y + Bounds.Height + TopFrameThiccness - size, size, size));
                                 break;
                             case "Desktop Defense Tower":
                                 e.Graphics.FillRectangle(Brushes.Gray, bodyRect);
                                 break;
                             case "Desktop Defense Portal":
                                 e.Graphics.InterpolationMode = InterpolationMode.NearestNeighbor;
-                                e.Graphics.DrawImage(form.Portal, bodyRect, -0.5f, form.PortalSize * frame - 0.5f, form.PortalSize, form.PortalSize, GraphicsUnit.Pixel);
+                                e.Graphics.DrawImage(form.Portal, bodyRect, 0, form.PortalSize * frame - 0, form.PortalSize, form.PortalSize, GraphicsUnit.Pixel);
                                 if (form.FrameNum % (form.FPS / form.PortalFPS) == 0)
                                     frame++;
                                 frame = frame % form.PortalFrames;
@@ -216,7 +328,7 @@ namespace Desktop_Defense
                         e.Graphics.DrawRectangle((this.Top) ? pen : Pens.Gray, topBar);
                         RectangleF textBar = new RectangleF(topBar.X, topBar.Y, topBar.Width, topBar.Height);
                         textBar.Offset(topBar.Height / 3, topBar.Height / 3);
-                        e.Graphics.DrawString(Title, SystemFonts.DefaultFont, (this.Top)? Brushes.Black : Brushes.Gray, textBar);
+                        e.Graphics.DrawString(Title, SystemFonts.DefaultFont, (this.Top) ? Brushes.Black : Brushes.Gray, textBar);
                     }
                 }
             }

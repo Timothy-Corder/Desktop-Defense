@@ -1,5 +1,8 @@
 using Desktop_Defense.Utils;
 using System.Diagnostics;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
@@ -23,8 +26,10 @@ namespace Desktop_Defense
         internal int PortalFPS = 10;
         internal ImgButton CloseButton;
         internal Grass Grass = new Grass();
+        private int _minGroundSize;
         public Form1(int portalCount, int wallCount, int towerCount)
         {
+            _minGroundSize = Grass.sprites[0][0].Width * 3 * Grass.ScaleFactor;
             this.Text = "Desktop Defense";
             this.FormBorderStyle = FormBorderStyle.None;
             this.WindowState = FormWindowState.Maximized;
@@ -78,6 +83,7 @@ namespace Desktop_Defense
         }
         protected override void OnPaint(PaintEventArgs e)
         {
+            e.Graphics.PixelOffsetMode = PixelOffsetMode.Half;
             base.OnPaint(e);
             e.Graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
             e.Graphics.DrawImage(BackgroundImage, 0, 0, this.Width, this.Height);
@@ -154,8 +160,9 @@ namespace Desktop_Defense
                 if (window.Resizeable && window.Resizing)
                 {
                     window.Bounds = new Rectangle(window.Bounds.X, window.Bounds.Y, mousePos.X - window.Bounds.X, mousePos.Y - window.Bounds.Y - FalseWindow.TopFrameThiccness);
-                    window.Bounds.Width = Math.Max(window.Bounds.Width, 150);
-                    window.Bounds.Height = Math.Max(window.Bounds.Height, 5);
+
+                    window.Bounds.Width = Math.Max(window.Bounds.Width, _minGroundSize);
+                    window.Bounds.Height = Math.Max(window.Bounds.Height, _minGroundSize);
                     return;
                 }
             }
