@@ -29,7 +29,7 @@ namespace Desktop_Defense
         private int _minGroundSize;
         public Form1(int portalCount, int wallCount, int towerCount)
         {
-            _minGroundSize = Grass.sprites[0][0].Width * 3 * Grass.ScaleFactor;
+            _minGroundSize = (int)(Grass.sprites[0][0].Width * 2 * Grass.ScaleFactor * 1.25);
             this.Text = "Desktop Defense";
             this.FormBorderStyle = FormBorderStyle.None;
             this.WindowState = FormWindowState.Maximized;
@@ -39,25 +39,24 @@ namespace Desktop_Defense
             this.PortalSize = Portal.Width;
             this.PortalFrames = Portal.Height / PortalSize;
             this.Title = Resources.Title;
-            this.FalseWindows = new FalseWindow[portalCount + wallCount + towerCount];
+            this.FalseWindows = new FalseWindow[portalCount + wallCount + towerCount + 1];
             Bitmap clsBtn = Resources.CloseButton;
             this.CloseButton = new ImgButton(new Rectangle(Screen.FromControl(this).WorkingArea.Width - (clsBtn.Width * 4), 0, clsBtn.Width * 4, (clsBtn.Height * 4) / 3), clsBtn, this.Close, new WeakReference<Form1>(this));
 
             for (int i = 0; i < portalCount; i++)
             {
-                FalseWindows[i] = FalseWindow.PortalTemplate();
-                FalseWindows[i].Parent = new WeakReference<Form1>(this);
+                FalseWindows[i] = new PortalWindow(this);
             }
             for (int i = portalCount; i < portalCount + wallCount; i++)
             {
-                FalseWindows[i] = new FalseWindow("Desktop Defense Ground", new Rectangle(200 + (i * 10), 200 + (i * 10), 150, 150), true, true);
-                FalseWindows[i].Parent = new WeakReference<Form1>(this);
+                FalseWindows[i] = new GroundWindow(i, this);
             }
             for (int i = portalCount + wallCount; i < portalCount + wallCount + towerCount; i++)
             {
                 FalseWindows[i] = new FalseWindow("Desktop Defense Tower", new Point(0, 0));
-                FalseWindows[i].Parent = new WeakReference<Form1>(this);
+                FalseWindows[i].Parent = this;
             }
+            FalseWindows[portalCount + wallCount + towerCount] = new HotbarWindow(this);
             this.Move += newScreenshot;
 
             // Refresh the drawing periodically
@@ -95,7 +94,7 @@ namespace Desktop_Defense
                 
                 e.Graphics.FillRectangle(new SolidBrush(Color.FromArgb(Math.Clamp(flashAlpha,0,255), Color.White)), 0, 0, this.Width, this.Height);
                 e.Graphics.DrawImage(Resources.Title, this.Width / 2 - (Resources.Title.Width * 10) / 2, this.Height / 2 - (Resources.Title.Height * 10) / 2, (Resources.Title.Width * 10), (Resources.Title.Height * 10));
-                flashAlpha += 5;
+                flashAlpha += 2;
                 if (flashAlpha >= 500)
                 {
                     flashAlpha = 0;
