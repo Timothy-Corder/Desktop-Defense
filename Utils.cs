@@ -149,6 +149,7 @@ namespace Desktop_Defense
             public string Title;
             public Rectangle Bounds;
             public bool Visible;
+            public bool Animating;
             public Form1 Parent
             {
                 get
@@ -229,6 +230,30 @@ namespace Desktop_Defense
                     if (Parent.FrameNum % (Parent.FPS / Parent.PortalFPS) == 0)
                         frame++;
                     frame = frame % Parent.PortalFrames;
+                }
+                base.Draw(e);
+            }
+        }
+        public class AnchorTest : FalseWindow
+        {
+            public AnchorTest(Form1 parent) : base("Anchor", new Rectangle(0, 0, 52, 52))
+            {
+                Parent = parent;
+                Bounds = new Rectangle(0, 0, parent.AnchorSize * 5, parent.AnchorSize * 5);
+                DrawEvent += Draw;
+                Animating = true;
+            }
+            public override void Draw(PaintEventArgs e)
+            {
+                if (Parent != null)
+                {
+                    e.Graphics.InterpolationMode = InterpolationMode.NearestNeighbor;
+                    e.Graphics.DrawImage(Parent.Anchor, new Rectangle(Bounds.X, Bounds.Y + TopFrameThiccness, Bounds.Width, Bounds.Height), 0, Parent.AnchorSize * frame - 0, Parent.AnchorSize, Parent.AnchorSize, GraphicsUnit.Pixel);
+                    if (Parent.FrameNum % (Parent.FPS / Parent.AnchorFPS) == 0 && Animating)
+                        frame++;
+                    if (!Animating)
+                        frame = 0;
+                    frame = frame % Parent.AnchorFrames;
                 }
                 base.Draw(e);
             }
@@ -444,12 +469,11 @@ namespace Desktop_Defense
             public void Draw(PaintEventArgs e)
             {
                 if (Parent != null)
-                
+
                     if (Visible)
                     {
                         e.Graphics.DrawImage(Sprite, Bounds, 0, (Sprite.Height / 3) * State, Sprite.Width, Sprite.Height / 3, GraphicsUnit.Pixel);
                     }
-                }
             }
             public void Trigger()
             {

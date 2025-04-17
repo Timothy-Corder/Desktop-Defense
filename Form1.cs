@@ -27,6 +27,12 @@ namespace Desktop_Defense
         internal ImgButton CloseButton;
         internal Grass Grass = new Grass();
         private int _minGroundSize;
+        internal Image Anchor;
+        internal int AnchorSize;
+        internal int AnchorFrames;
+        internal int AnchorFPS = 30;
+
+
         public Form1(int portalCount, int wallCount, int towerCount)
         {
             _minGroundSize = (int)(Grass.sprites[0][0].Width * 2 * Grass.ScaleFactor * 1.25);
@@ -38,8 +44,11 @@ namespace Desktop_Defense
             this.Portal = Resources.Portal;
             this.PortalSize = Portal.Width;
             this.PortalFrames = Portal.Height / PortalSize;
+            this.Anchor = Resources.Anchor;
+            this.AnchorSize = Anchor.Width;
+            this.AnchorFrames = Anchor.Height / AnchorSize;
             this.Title = Resources.Title;
-            this.FalseWindows = new FalseWindow[portalCount + wallCount + towerCount + 1];
+            this.FalseWindows = new FalseWindow[portalCount + wallCount + towerCount + 1 + 1];
             Bitmap clsBtn = Resources.CloseButton;
             this.CloseButton = new ImgButton(new Rectangle(Screen.FromControl(this).WorkingArea.Width - (clsBtn.Width * 4), 0, clsBtn.Width * 4, (clsBtn.Height * 4) / 3), clsBtn, this.Close, new WeakReference<Form1>(this));
 
@@ -57,6 +66,7 @@ namespace Desktop_Defense
                 FalseWindows[i].Parent = this;
             }
             FalseWindows[portalCount + wallCount + towerCount] = new HotbarWindow(this);
+            FalseWindows[portalCount + wallCount + towerCount + 1] = new AnchorTest(this);
             this.Move += newScreenshot;
 
             // Refresh the drawing periodically
