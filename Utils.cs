@@ -1,17 +1,31 @@
-﻿using System;
-using System.ComponentModel;
-using System.Configuration;
-using System.Diagnostics;
-using System.Drawing;
-using System.Drawing.Drawing2D;
+﻿using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
-using System.Windows.Forms;
 using TimUtils;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace Desktop_Defense
 {
     namespace Utils
     {
+        public class ManaSprite
+        {
+            public Bitmap[] sprites;
+            public const int ScaleFactor = 4;
+            public ManaSprite()
+            {
+                int spriteCount;
+                int size = Resources.ManaBall.Width;
+                spriteCount = Resources.ManaBall.Height / Resources.ManaBall.Width;
+                sprites = new Bitmap[spriteCount];
+                for (int i = 0; i < spriteCount; i++)
+                {
+                    Bitmap bmp = new Bitmap(size, size);
+                    Graphics g = Graphics.FromImage(bmp);
+                    g.DrawImage(Resources.ManaBall, new RectangleF(0, 0, size, size), new Rectangle(i * size, 0, size, size), GraphicsUnit.Pixel);
+                    sprites[i] = bmp;
+                }
+            }
+        }
         public class Grass
         {
             public Bitmap[][] sprites;
@@ -172,6 +186,7 @@ namespace Desktop_Defense
             public bool Resizeable;
             public bool Resizing;
             public bool Top = false;
+            public List<FWndElement> Elements = new List<FWndElement>();
             public event Action<PaintEventArgs> DrawEvent;
             public FalseWindow(string title, Rectangle bounds, bool visible, bool resizeable)
             {
@@ -210,7 +225,109 @@ namespace Desktop_Defense
                         RectangleF textBar = new RectangleF(topBar.X, topBar.Y, topBar.Width, topBar.Height);
                         textBar.Offset(topBar.Height / 3, topBar.Height / 3);
                         e.Graphics.DrawString(Title, SystemFonts.DefaultFont, (this.Top) ? Brushes.Black : Brushes.Gray, textBar);
+                        for (int i = 0; i < Elements.Count; i++)
+                        {
+                            if (Elements[i] != null)
+                            {
+                                Elements[i].Draw(e);
+                            }
+                        }
                     }
+                }
+            }
+            public virtual void MouseDown(MouseEventArgs e)
+            {
+                if (Resizeable && new Rectangle(Bounds.X + Bounds.Width - 5, Bounds.Y + FalseWindow.TopFrameThiccness + Bounds.Height - 5, 10, 10).Contains(Parent.PointToClient(e.Location)))
+                {
+                    Resizing = true;
+                }
+
+                // Check if the mouse is in the title bar
+                if ((new Rectangle(Bounds.X, Bounds.Y, Bounds.Width, 30)).Contains(e.Location))
+                {
+                    // Set the offset for dragging
+                    Difference = new Point(e.Location.X - Bounds.X, e.Location.Y - Bounds.Y);
+                    Dragging = true;
+                }
+                if (Dragging || Resizing)
+                {
+                    var fWnds = Parent.FalseWindows;
+                    // Move to the top
+                    for (int i = 0; i < fWnds.Count; i++)
+                    {
+                        if (fWnds[i] == this)
+                        {
+                            for (int k = i; k < fWnds.Count - 1; k++)
+                            {
+                                fWnds[k] = fWnds[k + 1];
+                                fWnds[k].Top = false;
+                            }
+                            fWnds[fWnds.Count - 1] = this;
+                            Top = true;
+                            break;
+                        }
+                    }
+                    return;
+                }
+                else
+                {
+                    Top = false;
+                }
+                foreach (FWndElement element in Elements)
+                {
+                    element.MouseDown(e);
+                }
+            }
+            public virtual void MouseMove(MouseEventArgs e)
+            {
+                if (Visible && Parent != null)
+                {
+                    Point mousePos = Parent.PointToClient(Cursor.Position);
+                    if (Dragging)
+                    {
+                        Bounds = new Rectangle(mousePos.X - Difference.X, mousePos.Y - Difference.Y, Bounds.Width, Bounds.Height);
+                    }
+                    if (Resizeable && Resizing)
+                    {
+                        Bounds = new Rectangle(Bounds.X, Bounds.Y, mousePos.X - Bounds.X, mousePos.Y - Bounds.Y);
+                    }
+                    foreach (FWndElement element in Elements)
+                    {
+                        if (element != null && element.Visible)
+                        {
+                            element.MouseMove(e);
+                        }
+                    }
+                }
+            }
+            public virtual void MouseUp(MouseEventArgs e)
+            {
+                if (Visible && Parent != null)
+                {
+                    Dragging = false;
+                    Resizing = false;
+                }
+                foreach (FWndElement element in Elements)
+                {
+                    if (element != null && element.Visible)
+                    {
+                        element.MouseUp(e);
+                    }
+                }
+            }
+            public void AddElement(FWndElement element)
+            {
+                if (element != null)
+                {
+                    element.Parent = this;
+                    Elements.Add(element);
+                }
+            }
+            public void RemoveElement(FWndElement element)
+            {
+                if (element != null)
+                {
+                    Elements.Remove(element);
                 }
             }
         }
@@ -234,36 +351,14 @@ namespace Desktop_Defense
                 base.Draw(e);
             }
         }
-        public class AnchorTest : FalseWindow
-        {
-            public AnchorTest(Form1 parent) : base("Anchor", new Rectangle(0, 0, 52, 52))
-            {
-                Parent = parent;
-                Bounds = new Rectangle(0, 0, parent.AnchorSize * 5, parent.AnchorSize * 5);
-                DrawEvent += Draw;
-                Animating = true;
-            }
-            public override void Draw(PaintEventArgs e)
-            {
-                if (Parent != null)
-                {
-                    e.Graphics.InterpolationMode = InterpolationMode.NearestNeighbor;
-                    e.Graphics.DrawImage(Parent.Anchor, new Rectangle(Bounds.X, Bounds.Y + TopFrameThiccness, Bounds.Width, Bounds.Height), 0, Parent.AnchorSize * frame - 0, Parent.AnchorSize, Parent.AnchorSize, GraphicsUnit.Pixel);
-                    if (Parent.FrameNum % (Parent.FPS / Parent.AnchorFPS) == 0 && Animating)
-                        frame++;
-                    if (!Animating)
-                        frame = 0;
-                    frame = frame % Parent.AnchorFrames;
-                }
-                base.Draw(e);
-            }
-        }
         public class GroundWindow : FalseWindow
         {
             public GroundWindow(int i, Form1 parent) : base("Desktop Defense Ground", new Rectangle(100 + (i * 20), 100 + (i * 20), 200, 200), true, true)
             {
                 Parent = parent;
                 DrawEvent += Draw;
+                AddElement(new Anchor(this));
+                Elements[0].Draggable = true;
             }
             public override void Draw(PaintEventArgs e)
             {
@@ -411,14 +506,6 @@ namespace Desktop_Defense
                 DrawEvent += Draw;
             }
         }
-        public class TowerWindow : FalseWindow
-        {
-            public TowerWindow(Form1 parent) : base("Desktop Defense Tower", new Rectangle(0, 0, 150, 150))
-            {
-                Parent = parent;
-                DrawEvent += Draw;
-            }
-        }
         public class FWndElement
         {
             public Rectangle Bounds;
@@ -431,8 +518,7 @@ namespace Desktop_Defense
             {
                 get
                 {
-                    FalseWindow fWnd;
-                    _parentRef.TryGetTarget(out fWnd);
+                    _parentRef.TryGetTarget(out FalseWindow fWnd);
                     return fWnd;
                 }
                 set
@@ -442,9 +528,40 @@ namespace Desktop_Defense
             }
             public bool StaticSprite = true;
             public int FrameCount = 1;
-            public int Frame = 0;
+            private int _frame = 0;
+            public int Frame
+            {
+                get => _frame;
+                set
+                {
+                    _frame = value % FrameCount;
+                }
+            }
             public int FPS;
+            public bool OnFrame
+            {
+                get
+                {
+                    if (StaticSprite)
+                    {
+                        return true;
+                    }
+                    if (FPS > 0 && Parent != null && Parent.Parent != null)
+                    {
+                        if (Parent.Parent.FrameNum % (Parent.Parent.FPS / FPS) == 0)
+                        {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+            }
             public Size spriteSize;
+            public bool Draggable;
+
+            // Dragging fields
+            private bool _dragging = false;
+            private Point _dragOffset;
 
             public FWndElement(Rectangle bounds, Image sprite, Action callback, FalseWindow parent)
             {
@@ -454,7 +571,19 @@ namespace Desktop_Defense
                 State = 0;
                 Visible = true;
                 Parent = parent;
+                Draggable = false;
             }
+            public FWndElement(Rectangle bounds, Image sprite, Action callback, FalseWindow parent, bool draggable)
+            {
+                Bounds = bounds;
+                Sprite = sprite;
+                Callback = callback;
+                State = 0;
+                Visible = true;
+                Parent = parent;
+                Draggable = draggable;
+            }
+
             public FWndElement(Rectangle bounds, Image sprite, Action callback, FalseWindow parent, int frameCount)
             {
                 Bounds = bounds;
@@ -465,19 +594,95 @@ namespace Desktop_Defense
                 Parent = parent;
                 StaticSprite = false;
                 FrameCount = frameCount;
+                Draggable = false;
             }
-            public void Draw(PaintEventArgs e)
+            public FWndElement(Rectangle bounds, Image sprite, Action callback, FalseWindow parent, int frameCount, bool draggable)
             {
-                if (Parent != null)
-
-                    if (Visible)
-                    {
-                        e.Graphics.DrawImage(Sprite, Bounds, 0, (Sprite.Height / 3) * State, Sprite.Width, Sprite.Height / 3, GraphicsUnit.Pixel);
-                    }
+                Bounds = bounds;
+                Sprite = sprite;
+                Callback = callback;
+                State = 0;
+                Visible = true;
+                Parent = parent;
+                StaticSprite = false;
+                FrameCount = frameCount;
+                Draggable = draggable;
             }
+
+            public virtual void Draw(PaintEventArgs e)
+            {
+                if (Parent != null && Visible)
+                {
+                    // Constrain within parent bounds
+                    if (Bounds.X < Parent.Bounds.X)
+                    {
+                        Bounds.X = Parent.Bounds.X;
+                    }
+                    if (Bounds.Y < Parent.Bounds.Y + FalseWindow.TopFrameThiccness)
+                    {
+                        Bounds.Y = Parent.Bounds.Y + FalseWindow.TopFrameThiccness;
+                    }
+                    if (Bounds.X + Bounds.Width > Parent.Bounds.X + Parent.Bounds.Width)
+                    {
+                        Bounds.X = Parent.Bounds.X + Parent.Bounds.Width - Bounds.Width;
+                    }
+                    if (Bounds.Y + Bounds.Height > Parent.Bounds.Y + Parent.Bounds.Height + FalseWindow.TopFrameThiccness)
+                    {
+                        Bounds.Y = Parent.Bounds.Y + Parent.Bounds.Height - Bounds.Height + FalseWindow.TopFrameThiccness;
+                    }
+
+                    // Draw element
+                    e.Graphics.DrawImage(Sprite, Bounds, 0, (Sprite.Height / FrameCount) * State, Sprite.Width, Sprite.Height / FrameCount, GraphicsUnit.Pixel);
+                }
+            }
+
             public void Trigger()
             {
                 Callback.Invoke();
+            }
+
+            // Handle mouse events
+            public virtual void MouseDown(MouseEventArgs e)
+            {
+                Point mousePos = Parent.Parent.PointToClient(Cursor.Position);
+                if ((Bounds.Contains(mousePos) && Draggable) || Parent.Dragging)
+                {
+                    _dragging = true;
+                    _dragOffset = new Point(mousePos.X - Bounds.X, mousePos.Y - Bounds.Y);
+                }
+            }
+
+            public virtual void MouseMove(MouseEventArgs e)
+            {
+                Point mousePos = Parent.Parent.PointToClient(Cursor.Position);
+                if (_dragging || Parent.Dragging)
+                {
+                    Bounds = new Rectangle(mousePos.X - _dragOffset.X, mousePos.Y - _dragOffset.Y, Bounds.Width, Bounds.Height);
+                }
+            }
+
+            public virtual void MouseUp(MouseEventArgs e)
+            {
+                _dragging = false;
+            }
+        }
+        public class Anchor : FWndElement
+        {
+            public Anchor(FalseWindow parent) : base(new Rectangle(0,0,64,64),Resources.ManaBall,DoNothing,parent,Resources.ManaBall.Height / Resources.ManaBall.Width, true)
+            {
+                FPS = 16;
+            }
+            public static void DoNothing()
+            {
+            }
+            public override void Draw(PaintEventArgs e)
+            {
+                base.Draw(e);
+                if (OnFrame)
+                {
+                    Frame++;
+                    State = Frame;
+                }
             }
         }
     }
