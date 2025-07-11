@@ -10,7 +10,7 @@ using Timer = System.Windows.Forms.Timer;
 
 namespace Desktop_Defense
 {
-    public partial class Form1 : Form
+    public partial class GameForm : Form
     {
         private Timer refreshTimer;
         internal Image Portal;
@@ -34,7 +34,7 @@ namespace Desktop_Defense
         internal int AnchorFPS = 30;
 
 
-        public Form1(int portalCount, int wallCount, int towerCount)
+        public GameForm(int portalCount, int wallCount, int towerCount)
         {
             _minGroundSize = (int)(Grass.sprites[0][0].Width * 2 * Grass.ScaleFactor * 1.25);
             this.Text = "Desktop Defense";
@@ -48,7 +48,7 @@ namespace Desktop_Defense
             this.Title = Resources.Title;
             this.FalseWindows = new List<FalseWindow>();
             Bitmap clsBtn = Resources.CloseButton;
-            this.CloseButton = new ImgButton(new Rectangle(Screen.FromControl(this).WorkingArea.Width - (clsBtn.Width * 4), 0, clsBtn.Width * 4, (clsBtn.Height * 4) / 3), clsBtn, this.Close, new WeakReference<Form1>(this));
+            this.CloseButton = new ImgButton(new Rectangle(Screen.FromControl(this).WorkingArea.Width - (clsBtn.Width * 4), 0, clsBtn.Width * 4, (clsBtn.Height * 4) / 3), clsBtn, this.Close, new WeakReference<GameForm>(this));
 
             for (int i = 0; i < portalCount; i++)
             {
@@ -132,33 +132,33 @@ namespace Desktop_Defense
             CloseButton.Draw(e);
         }
 
-        public void DragFalseWindow(Point mousePos)
-        {
-            foreach (FalseWindow window in FalseWindows)
-            {
-                if (window.Dragging)
-                {
-                    window.Bounds = new Rectangle(mousePos.X - window.Difference.X, mousePos.Y - window.Difference.Y, window.Bounds.Width, window.Bounds.Height);
-                    if (window.Bounds.X < 0)
-                    {
-                        window.Bounds = new Rectangle(0, window.Bounds.Y, window.Bounds.Width, window.Bounds.Height);
-                    }
-                    if (window.Bounds.Y < 0)
-                    {
-                        window.Bounds = new Rectangle(window.Bounds.X, 0, window.Bounds.Width, window.Bounds.Height);
-                    }
-                    if (window.Bounds.X + window.Bounds.Width > this.Width)
-                    {
-                        window.Bounds = new Rectangle(this.Width - window.Bounds.Width, window.Bounds.Y, window.Bounds.Width, window.Bounds.Height);
-                    }
-                    if (window.Bounds.Y + window.Bounds.Height + FalseWindow.TopFrameThiccness > this.Height)
-                    {
-                        window.Bounds = new Rectangle(window.Bounds.X, this.Height - window.Bounds.Height - FalseWindow.TopFrameThiccness, window.Bounds.Width, window.Bounds.Height);
-                    }
-                    return;
-                }
-            }
-        }
+        //public void DragFalseWindow(Point mousePos)
+        //{
+        //    foreach (FalseWindow window in FalseWindows)
+        //    {
+        //        if (window.Dragging)
+        //        {
+        //            window.Bounds = new Rectangle(mousePos.X - window.Difference.X, mousePos.Y - window.Difference.Y, window.Bounds.Width, window.Bounds.Height);
+        //            if (window.Bounds.X < 0)
+        //            {
+        //                window.Bounds = new Rectangle(0, window.Bounds.Y, window.Bounds.Width, window.Bounds.Height);
+        //            }
+        //            if (window.Bounds.Y < 0)
+        //            {
+        //                window.Bounds = new Rectangle(window.Bounds.X, 0, window.Bounds.Width, window.Bounds.Height);
+        //            }
+        //            if (window.Bounds.X + window.Bounds.Width > this.Width)
+        //            {
+        //                window.Bounds = new Rectangle(this.Width - window.Bounds.Width, window.Bounds.Y, window.Bounds.Width, window.Bounds.Height);
+        //            }
+        //            if (window.Bounds.Y + window.Bounds.Height + FalseWindow.TopFrameThiccness > this.Height)
+        //            {
+        //                window.Bounds = new Rectangle(window.Bounds.X, this.Height - window.Bounds.Height - FalseWindow.TopFrameThiccness, window.Bounds.Width, window.Bounds.Height);
+        //            }
+        //            return;
+        //        }
+        //    }
+        //}
         public void ScaleFalseWindow(Point mousePos)
         {
             foreach (FalseWindow window in FalseWindows)
@@ -177,12 +177,24 @@ namespace Desktop_Defense
         {
             base.OnMouseDown(e);
             CloseButton.ClickDown(e.Location);
-            for (int i = FalseWindows.Count - 1; i >= 0; i--)
+            // Only send the mouse down to the topmost visible window under the mouse
+            bool windowUnder = false;
+            for (int i = FalseWindows.Count - 1; i >= 0; i--) // reverse order = topmost first
             {
-                FalseWindow window = FalseWindows[i];
-
-                // Check if the mouse is on the resize handle
-                window.MouseDown(e);
+                var wnd = FalseWindows[i];
+                if (wnd.Visible && wnd.Bounds.Contains(e.Location))
+                {
+                    wnd.MouseDown(e);
+                    windowUnder = true;
+                    break; // Only let one window handle it
+                }
+            }
+            if (!windowUnder)
+            {
+                foreach(FalseWindow window in FalseWindows)
+                {
+                    window.Top = false;
+                }
             }
         }
         protected override void OnMouseMove(MouseEventArgs e)

@@ -1,6 +1,9 @@
 using System.Drawing.Imaging;
 using System.Drawing;
 using System;
+using static TimUtils.Functions;
+using static TimUtils.TimOperator;
+using System.Diagnostics;
 
 namespace Desktop_Defense
 {
@@ -17,7 +20,7 @@ namespace Desktop_Defense
             Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
             ApplicationConfiguration.Initialize();
             //MakeWalls(3).Wait();
-            Form1 app = new Form1(1, 5 , 0);
+            GameForm app = new GameForm(1, 5 , 0);
 
             app.Show();
 
