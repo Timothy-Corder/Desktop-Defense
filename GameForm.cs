@@ -68,7 +68,7 @@ namespace Desktop_Defense
 
             // Refresh the drawing periodically
             refreshTimer = new Timer();
-            refreshTimer.Interval = 1000/FPS; // 60fps
+            refreshTimer.Interval = 1000/FPS;
             refreshTimer.Tick += (s, e) => this.Invalidate();
             refreshTimer.Start();
         }
@@ -95,7 +95,9 @@ namespace Desktop_Defense
             e.Graphics.DrawImage(BackgroundImage, 0, 0, this.Width, this.Height);
             e.Graphics.PageUnit = GraphicsUnit.Pixel;
             FrameNum = (FrameNum+1) % 60;
-            
+
+            bool usingDefaultCursor = true;
+
             if (flashing)
             {
                 
@@ -114,21 +116,50 @@ namespace Desktop_Defense
             foreach (FalseWindow window in FalseWindows)
             {
                 window.Draw(e);
-            }
-            for (int i = FalseWindows.Count - 1; i >= 0; i--)
-            {
-                FalseWindow window = FalseWindows[i];
-                if (window.Resizeable && new Rectangle(window.Bounds.X + window.Bounds.Width - 5, window.Bounds.Y + FalseWindow.TopFrameThiccness + window.Bounds.Height - 5, 10, 10).Contains(PointToClient(MousePosition)))
+                if (!window.Resizeable)
+                    continue;
+
+                Rectangle bounds = window.Bounds;
+                Point mousePos = PointToClient(MousePosition);
+
+                // Define the corner rectangles
+                Rectangle bottomRight = new Rectangle(bounds.X + bounds.Width - 10, bounds.Y + FalseWindow.TopFrameThiccness + bounds.Height - 10, 10, 10);
+                Rectangle bottomLeft = new Rectangle(bounds.X, bounds.Y + FalseWindow.TopFrameThiccness + bounds.Height - 10, 10, 10);
+                Rectangle topRight = new Rectangle(bounds.X + bounds.Width - 10, bounds.Y, 10, 10);
+                Rectangle topLeft = new Rectangle(bounds.X, bounds.Y, 10, 10);
+
+                if (bottomRight.Contains(mousePos))
                 {
+                    usingDefaultCursor = false;
                     Cursor = Cursors.SizeNWSE;
-                    break;
                 }
-                else
+                else if (bottomLeft.Contains(mousePos))
                 {
-                    Cursor = Cursors.Default;
+                    usingDefaultCursor = false;
+                    Cursor = Cursors.SizeNESW;
+                }
+                else if (topRight.Contains(mousePos))
+                {
+                    usingDefaultCursor = false;
+                    Cursor = Cursors.SizeNESW;
+                }
+                else if (topLeft.Contains(mousePos))
+                {
+                    usingDefaultCursor = false;
+                    Cursor = Cursors.SizeNWSE;
                 }
             }
-            CloseButton.Hover(PointToClient(MousePosition));
+            if (CloseButton.Bounds.Contains(PointToClient(MousePosition)))
+            {
+                usingDefaultCursor = false;
+                Cursor = Cursors.Hand;
+                CloseButton.Hover(PointToClient(MousePosition));
+            }
+            
+            if (usingDefaultCursor)
+            {
+                Cursor = Cursors.Default;
+            }
             CloseButton.Draw(e);
         }
 
@@ -182,7 +213,7 @@ namespace Desktop_Defense
             for (int i = FalseWindows.Count - 1; i >= 0; i--) // reverse order = topmost first
             {
                 var wnd = FalseWindows[i];
-                if (wnd.Visible && wnd.Bounds.Contains(e.Location))
+                if (wnd.Visible && wnd.FullBounds.Contains(e.Location))
                 {
                     wnd.MouseDown(e);
                     windowUnder = true;

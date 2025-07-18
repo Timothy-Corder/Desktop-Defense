@@ -9,9 +9,32 @@ namespace Desktop_Defense
 {
     public class FalseWindow
     {
+        enum ResizeCorner
+        {
+            None,
+            TopLeft,
+            TopRight,
+            BottomLeft,
+            BottomRight
+        }
+
         private WeakReference<GameForm> _parentRef;
         public string Title;
         public Rectangle Bounds;
+        public Rectangle FullBounds
+        {
+            get
+            {
+                return new Rectangle(Bounds.X, Bounds.Y, Bounds.Width, Bounds.Height + TopFrameThiccness);
+            }
+        }
+        public Rectangle TopBarBounds
+        {
+            get
+            {
+                return new Rectangle(Bounds.X, Bounds.Y, Bounds.Width, TopFrameThiccness);
+            }
+        }
         public bool Visible;
         public bool Animating;
         public GameForm Parent
@@ -38,6 +61,9 @@ namespace Desktop_Defense
         public bool Top = false;
         public List<FalseElement> Elements = new List<FalseElement>();
         public event Action<PaintEventArgs> DrawEvent;
+        ResizeCorner activeResizeCorner = ResizeCorner.None;
+
+
         public FalseWindow(string title, Rectangle bounds, bool visible, bool resizeable)
         {
             DrawEvent += Draw;
@@ -88,13 +114,45 @@ namespace Desktop_Defense
         public virtual void MouseDown(MouseEventArgs e)
         {
             Top = true;
-            if (Resizeable && new Rectangle(Bounds.X + Bounds.Width - 5, Bounds.Y + FalseWindow.TopFrameThiccness + Bounds.Height - 5, 10, 10).Contains(Parent.PointToClient(e.Location)))
+            if (Resizeable)
             {
-                Resizing = true;
+                Point mousePos = Parent.PointToClient(e.Location);
+                Rectangle bounds = Bounds;
+
+                Rectangle bottomRight = new Rectangle(bounds.X + bounds.Width - 10, bounds.Y + FalseWindow.TopFrameThiccness + bounds.Height - 10, 10, 10);
+                Rectangle bottomLeft = new Rectangle(bounds.X, bounds.Y + FalseWindow.TopFrameThiccness + bounds.Height - 10, 10, 10);
+                Rectangle topRight = new Rectangle(bounds.X + bounds.Width - 10, bounds.Y, 10, 10);
+                Rectangle topLeft = new Rectangle(bounds.X, bounds.Y, 10, 10);
+
+                if (bottomRight.Contains(mousePos))
+                {
+                    Resizing = true;
+                    activeResizeCorner = ResizeCorner.BottomRight;
+                }
+                else if (bottomLeft.Contains(mousePos))
+                {
+                    Resizing = true;
+                    activeResizeCorner = ResizeCorner.BottomLeft;
+                }
+                else if (topRight.Contains(mousePos))
+                {
+                    Resizing = true;
+                    activeResizeCorner = ResizeCorner.TopRight;
+                }
+                else if (topLeft.Contains(mousePos))
+                {
+                    Resizing = true;
+                    activeResizeCorner = ResizeCorner.TopLeft;
+                }
+                else
+                {
+                    Resizing = false;
+                    activeResizeCorner = ResizeCorner.None;
+                }
             }
 
             // Check if the mouse is in the title bar
-            if ((new Rectangle(Bounds.X, Bounds.Y, Bounds.Width, 30)).Contains(e.Location))
+            if (TopBarBounds.Contains(e.Location) && !Resizing)
             {
                 // Set the offset for dragging
                 Difference = new Point(e.Location.X - Bounds.X, e.Location.Y - Bounds.Y);
@@ -132,8 +190,57 @@ namespace Desktop_Defense
                 }
                 if (Resizeable && Resizing)
                 {
-                    Bounds = new Rectangle(Bounds.X, Bounds.Y, mousePos.X - Bounds.X, mousePos.Y - Bounds.Y);
+                    Rectangle newBounds = Bounds;
+
+                    switch (activeResizeCorner)
+                    {
+                        case ResizeCorner.BottomRight:
+                            newBounds.Width = mousePos.X - Bounds.X;
+                            newBounds.Height = mousePos.Y - Bounds.Y - TopFrameThiccness;
+                            break;
+
+                        case ResizeCorner.BottomLeft:
+                            int newRightX = Bounds.Right;
+                            newBounds.X = mousePos.X;
+                            newBounds.Width = newRightX - newBounds.X;
+                            newBounds.Height = mousePos.Y - Bounds.Y - TopFrameThiccness;
+                            break;
+
+                        case ResizeCorner.TopRight:
+                            int newBottomY = Bounds.Bottom;
+                            newBounds.Y = mousePos.Y;
+                            newBounds.Height = newBottomY - newBounds.Y;
+                            newBounds.Width = mousePos.X - Bounds.X;
+                            break;
+
+                        case ResizeCorner.TopLeft:
+                            newRightX = Bounds.Right;
+                            newBottomY = Bounds.Bottom;
+                            newBounds.X = mousePos.X;
+                            newBounds.Y = mousePos.Y;
+                            newBounds.Width = newRightX - newBounds.X;
+                            newBounds.Height = newBottomY - newBounds.Y;
+                            break;
+                    }
+
+                    // Clamp minimum dimensions
+                    if (newBounds.Width < 150)
+                    {
+                        if (activeResizeCorner == ResizeCorner.BottomLeft || activeResizeCorner == ResizeCorner.TopLeft)
+                            newBounds.X -= (150 - newBounds.Width);
+                        newBounds.Width = 150;
+                    }
+
+                    if (newBounds.Height < 150)
+                    {
+                        if (activeResizeCorner == ResizeCorner.TopLeft || activeResizeCorner == ResizeCorner.TopRight)
+                            newBounds.Y -= (150 - newBounds.Height);
+                        newBounds.Height = 150;
+                    }
+
+                    Bounds = newBounds;
                 }
+
                 foreach (FalseElement element in Elements)
                 {
                     if (element != null && element.Visible)
